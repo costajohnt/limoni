@@ -29,8 +29,10 @@ func newTestBrowser(t *testing.T) *browser {
 			t.Fatal(err)
 		}
 	}
+	// Windows allows symlinks only with Developer Mode or as administrator;
+	// without one the test still runs, minus the symlink case.
 	if err := os.Symlink(filepath.Join(root, "docs"), filepath.Join(root, "linked")); err != nil {
-		t.Fatal(err)
+		t.Logf("no symlink: %v", err)
 	}
 	b, err := newBrowser(root)
 	if err != nil {
@@ -104,7 +106,7 @@ func TestBrowsePreviewAndJump(t *testing.T) {
 		t.Fatal("Esc left the jump box open")
 	}
 	if b.focus != "files" {
-		t.Fatalf("Tab from the code view left focus on %q", b.focus)
+		t.Fatalf("closing the jump box left focus on %q", b.focus)
 	}
 
 	// [ and ] move the divider.
