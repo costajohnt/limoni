@@ -8,6 +8,11 @@ a patch bump (`v0.x.y`) does not.
 
 ## [Unreleased]
 
+### Added
+- `examples/file_browser` (FilePicker, CodeView, SplitPane, StatusBar and
+  Autocomplete) and `examples/dashboard_gauges` (BigText, Gauge, LineGauge and a
+  LineChart drawn with sextants), for the widgets added in v0.9.0.
+
 ## [v0.12.0] — 2026-10-05
 
 ### Breaking
@@ -337,9 +342,6 @@ a patch bump (`v0.x.y`) does not.
 ## [v0.9.5] — 2026-10-01
 
 ### Added
-- `examples/file_browser` (FilePicker, CodeView, SplitPane, StatusBar and
-  Autocomplete) and `examples/dashboard_gauges` (BigText, Gauge, LineGauge and a
-  LineChart drawn with sextants), for the widgets added in v0.9.0.
 - README: a backdrop-shell section with a recording (`assets/backdrop-shell.gif`,
   1.2 MB, in the assets module, so no importer downloads it).
 - `backdrop-shell opacity 0.3` (or `+0.1`, `-0.1`), and settings changes in

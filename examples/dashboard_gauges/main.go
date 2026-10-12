@@ -137,17 +137,23 @@ func (d *dashboard) draw(f *limoni.Frame, ev *limoni.Event) bool {
 		Style:     cell.Style{Fg: accent},
 	}), top[0])
 
-	f.RenderWidget(panel(" Load — Gauge ", &gauges{
-		{ID: "cpu", Ratio: last(d.cpu) / 100, Label: fmt.Sprintf("CPU %.0f%%", last(d.cpu)), GaugeStyle: cell.Style{Fg: blue}},
-		{ID: "mem", Ratio: last(d.mem) / 100, Label: fmt.Sprintf("Memory %.0f%%", last(d.mem)), GaugeStyle: cell.Style{Fg: orange}},
-	}), top[1])
+	// Each gauge is rendered on its own row with f.RenderWidget, so it is a
+	// node of its own in the semantic tree that agents and uitest read.
+	load := panel(" Load — Gauge ", nil)
+	f.RenderWidget(load, top[1])
+	stack(f, load.Inner(top[1]), 0, []widgets.Widget{
+		widgets.Gauge{ID: "cpu", Ratio: last(d.cpu) / 100, Label: fmt.Sprintf("CPU %.0f%%", last(d.cpu)), GaugeStyle: cell.Style{Fg: blue}},
+		widgets.Gauge{ID: "mem", Ratio: last(d.mem) / 100, Label: fmt.Sprintf("Memory %.0f%%", last(d.mem)), GaugeStyle: cell.Style{Fg: orange}},
+	})
 
-	f.RenderWidget(panel(" Jobs — LineGauge ", &lineGauges{
-		{ID: "job-api", Ratio: d.job(40, 0), Label: "api      ", FilledStyle: cell.Style{Fg: accent}, UnfilledStyle: muted},
-		{ID: "job-web", Ratio: d.job(55, 20), Label: "web      ", FilledStyle: cell.Style{Fg: blue}, UnfilledStyle: muted},
-		{ID: "job-docs", Ratio: d.job(25, 5), Label: "docs     ", FilledStyle: cell.Style{Fg: orange}, UnfilledStyle: muted},
-		{ID: "job-wasm", Ratio: d.job(70, 50), Label: "wasm     ", FilledStyle: cell.Style{Fg: accent}, UnfilledStyle: muted},
-	}), body[0])
+	jobs := panel(" Jobs — LineGauge ", nil)
+	f.RenderWidget(jobs, body[0])
+	stack(f, jobs.Inner(body[0]), 1, []widgets.Widget{
+		widgets.LineGauge{ID: "job-api", Ratio: d.job(40, 0), Label: "api      ", FilledStyle: cell.Style{Fg: accent}, UnfilledStyle: muted},
+		widgets.LineGauge{ID: "job-web", Ratio: d.job(55, 20), Label: "web      ", FilledStyle: cell.Style{Fg: blue}, UnfilledStyle: muted},
+		widgets.LineGauge{ID: "job-docs", Ratio: d.job(25, 5), Label: "docs     ", FilledStyle: cell.Style{Fg: orange}, UnfilledStyle: muted},
+		widgets.LineGauge{ID: "job-wasm", Ratio: d.job(70, 50), Label: "wasm     ", FilledStyle: cell.Style{Fg: accent}, UnfilledStyle: muted},
+	})
 
 	m := markers[d.marker]
 	f.RenderWidget(panel(" History — LineChart, "+m.name+" marker ", widgets.LineChart{
@@ -180,42 +186,16 @@ func (d *dashboard) draw(f *limoni.Frame, ev *limoni.Event) bool {
 	return true
 }
 
-// gauges stacks Gauges one row apart, so a Block can hold them as one child.
-type gauges []widgets.Gauge
-
-func (g *gauges) Draw(ctx cell.Context, buf *limoni.Buffer) {
-	for i, gauge := range *g {
-		y := ctx.Area.Y + uint16(2*i)
-		if y >= ctx.Area.Y+ctx.Area.Height {
+// stack renders each widget on its own one-row area, starting top rows
+// down and leaving an empty row between them.
+func stack(f *limoni.Frame, area cell.Rect, top uint16, ws []widgets.Widget) {
+	for i, w := range ws {
+		y := area.Y + top + uint16(2*i)
+		if y >= area.Y+area.Height {
 			return
 		}
-		row := ctx
-		row.Area = cell.NewRect(ctx.Area.X, y, ctx.Area.Width, 1)
-		gauge.Draw(row, buf)
+		f.RenderWidget(w, cell.NewRect(area.X, y, area.Width, 1))
 	}
-}
-
-func (g *gauges) SizeHint(maxArea cell.Rect) (uint16, uint16) {
-	return maxArea.Width, min(uint16(2*len(*g)), maxArea.Height)
-}
-
-// lineGauges stacks LineGauges one row apart.
-type lineGauges []widgets.LineGauge
-
-func (g *lineGauges) Draw(ctx cell.Context, buf *limoni.Buffer) {
-	for i, gauge := range *g {
-		y := ctx.Area.Y + 1 + uint16(2*i)
-		if y >= ctx.Area.Y+ctx.Area.Height {
-			return
-		}
-		row := ctx
-		row.Area = cell.NewRect(ctx.Area.X, y, ctx.Area.Width, 1)
-		gauge.Draw(row, buf)
-	}
-}
-
-func (g *lineGauges) SizeHint(maxArea cell.Rect) (uint16, uint16) {
-	return maxArea.Width, min(uint16(2*len(*g)+1), maxArea.Height)
 }
 
 func main() {

@@ -31,6 +31,15 @@ func TestDashboardDrawsEveryWidget(t *testing.T) {
 		t.Errorf("the chart is not drawn in sextants:\n%s", screen)
 	}
 
+	// The gauges are widgets in the semantic tree, so agents and tests can
+	// find them by ID, not only by what the screen shows.
+	for id, label := range map[string]string{
+		"cpu": "CPU", "mem": "Memory",
+		"job-api": "api", "job-web": "web", "job-docs": "docs", "job-wasm": "wasm",
+	} {
+		page.Expect(page.GetByID(id)).ToContainLabel(label)
+	}
+
 	page.Press("m")
 	screen = page.Screen()
 	if !strings.Contains(screen, "braille marker") || !hasRuneIn(screen, 0x2801, 0x28FF) {
